@@ -1,5 +1,5 @@
 
-#define K_ENCODER_RATING 11
+const int kEffectivePPR = 44;;
 
 const int kMA1 = 0;
 const int kMA2 = 0;
@@ -9,3 +9,4 @@ const int kEncoder2 = 0;
 
 const int kMotorRPM = 0;
 
+const unsigned long kSampleTime = 50; // ms
