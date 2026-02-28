@@ -43,7 +43,6 @@ void setup(){
   motor.setDebug(true);
 
   motor.setRPM(0);
-  motor.setDir(true);
   delay(2000); // Gives A second before jumping into the mainloop
 };
 
@@ -75,11 +74,9 @@ void loop(){
             motor.setRPM(kMotorMaxRPM/2);
           break;
         case 2:
-            motor.setDir(false);
-            motor.setRPM(kMotorMaxRPM);
+            motor.setRPM(-kMotorMaxRPM);
           break;
         case 3:
-            motor.setDir(true);
             motor.setRPM(0);
           break;
       }

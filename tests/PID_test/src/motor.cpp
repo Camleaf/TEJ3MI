@@ -34,43 +34,23 @@ RPMController::RPMController(uint8_t In1, uint8_t In2, uint8_t Encoder1, uint8_t
     attachInterruptArg(kEncoder2, *RPMController::ChanB, this, CHANGE);
 
     
-
-    if (idealDir){
-        ledcAttach(kIn1,5000,kPWMResolution);
-        ledcWrite(kIn1,outValue);
-    } else {
-        ledcAttach(kIn2,5000,kPWMResolution);
-        ledcWrite(kIn2,outValue);
-    }
+    // Starts forwards
+    ledcAttach(kIn1,5000,kPWMResolution);
+    ledcWrite(kIn1,0);
 }
 
 
-
+/**
+ * Input a negative RPM for one way rotation, positive for another
+ */
 void RPMController::setRPM(int rpm){
-     idealRPM = rpm;
+    idealRPM = constrain(rpm,-kMotorMaxRPM,kMotorMaxRPM);
+
 }
 
 float RPMController::readRPM(){
    return realRPM; 
 }
-
-void RPMController::setDir(bool dir){
-    if (dir == idealDir) return;
-    idealDir = dir;
-
-    if (idealDir){
-        ledcDetach(kIn2);
-        delay(1);
-        ledcAttach(kIn1,5000,kPWMResolution);
-        ledcWrite(kIn1, 0);
-    } else {
-        ledcDetach(kIn1);
-        delay(1);
-        ledcAttach(kIn2,5000,kPWMResolution);
-        ledcWrite(kIn2, 0);
-    }
-}
-
 
 void RPMController::setPIDValues(int kP, int kI, int kD){
     kProportional = kP;
@@ -111,18 +91,19 @@ void RPMController::tick(){
         if (kDebug){
             Serial.print(",realRPM:");
             // Flip to negative based on real direction
-            if (realDir) Serial.print(realRPM,2);
-            else Serial.print(-realRPM,2);
+            Serial.print(realRPM,2);
 
             Serial.print(",IdealRPM:");
-            if (idealDir) Serial.print(idealRPM);
-            else Serial.print(-idealRPM);
+            Serial.print(idealRPM);
             Serial.print("\n");
         }
 
         long currentCount = edgeCount;
         // 60000 comes from 60 * 1000 (seconds in minute * ms in second)
         realRPM = (currentCount * 60000.0) / (kEffectivePPR * kSampleTime);
+        
+        if (!realDir) realRPM = -realRPM;
+
         edgeCount = 0;
         
 
@@ -130,26 +111,42 @@ void RPMController::tick(){
 
         // PID tuning if outside tolerance
         if (abs(realRPM-idealRPM)>kRPMTolerance){
-          // Handle PID tuning
-          long delta = millis()-lastTime;
-          float error = realRPM-idealRPM;
-          integral += error * delta;
-          float derivative = (error-prevError) / delta; 
-          prevError = error;
+            // Handle PID tuning
+            long delta = millis()-lastTime;
+            float error = realRPM-idealRPM;
+            integral += error * delta;
+            float derivative = (error-prevError) / delta; 
+            prevError = error;
 
-          float tuned = error*kProportional + derivative * kDerivative + integral * kIntegral;
-          // Handle proportional error;
-          outValue = map(
+            float tuned = error*kProportional + derivative * kDerivative + integral * kIntegral;
+            // Handle proportional error;
+            outValue = map(
                     (int) tuned,
-                    0,kMotorMaxRPM,0,kFineResolution);
+                    -kMotorMaxRPM,kMotorMaxRPM,-kFineResolution,kFineResolution);
         
-          outValue = constrain(outValue,0,kFineResolution);
-        
-          if (idealDir){
-            ledcWrite(kIn1, outValue);
-          } else {
-            ledcWrite(kIn2, outValue);
-          }
+            outValue = constrain(outValue,-kFineResolution,kFineResolution);
+                        
+                        
+
+            if (outValue >= 0){
+                if (!prevDir){
+                    ledcDetach(kIn2);
+                    delay(1);
+                    ledcAttach(kIn1,5000,kPWMResolution);
+                }
+
+                ledcWrite(kIn1, outValue);
+                prevDir = true; 
+            } else {
+                if (!prevDir){
+                    ledcDetach(kIn1);
+                    delay(1);
+                    ledcAttach(kIn2,5000,kPWMResolution);
+                }
+
+                ledcWrite(kIn2, -outValue);
+                prevDir = false;
+            }
         }
 
         lastTime = millis();  

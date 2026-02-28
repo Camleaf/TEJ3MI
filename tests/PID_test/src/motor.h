@@ -24,7 +24,6 @@ class RPMController {
         void setRPM(int rpm); 
         float readRPM();
 
-        void setDir(bool dir);
         bool readDir();
 
         void setDebug(bool enabled);
@@ -89,7 +88,7 @@ class RPMController {
         int idealRPM;
         float realRPM;
         
-        bool idealDir;
+        volatile bool prevDir = true;
         volatile bool realDir = true;
         volatile bool edgeCount = 0;
         
