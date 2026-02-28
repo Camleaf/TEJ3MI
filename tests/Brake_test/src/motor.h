@@ -4,27 +4,25 @@
 #include "stdint.h"
 #include <cstdint>
 
-class RPMController {
+class PositionController {
     public:
         /** 
-         * Initializes an instance of RPMController
+         * Initializes an instance of PositionController
          *
          * @param In1 the pin that connects to In1 on a compatible motor driver
          * @param In2 the pin that connects to In2 on a compatible motor driver
          * @param Encoder1 the pin that the first quadrature encoder wire connects to
          * @param Encoder2 the pin that the second quadrature encoder wire connects to
          * @param motorMaxRPM the maximum RPM of the motor
-         * @param sampleTime the time between sampling RPM. Too short times can lead to instability
+         * @param sampleTime the time between updating motor based on readings. Too short times can lead to instability
          * @param effectivePPR the effectivePPR for 4x decoding on the encoder
-         * @param RPMTolerance the acceptable difference between ideal RPM and real RPM. If set to 0 the class will determine it automatically
+         * @param PositionTolerance the acceptable difference in degrees between ideal position and real position. If set to 0 the class will determine it automatically
          * @param debug If debug messages should be printed. Compatible with Arduino IDE serial plotter
          */
-        RPMController(uint8_t In1, uint8_t In2, uint8_t Encoder1, uint8_t Encoder2, int motorMaxRPM, int sampleTime=50, int effectivePPR=44, int RPMTolerance=0, bool debug=false, uint8_t PWMResolution=8);
+        PositionController(uint8_t In1, uint8_t In2, uint8_t Encoder1, uint8_t Encoder2, int motorMaxRPM, int sampleTime=50, int effectivePPR=44, int PositionTolerance=0, bool debug=false, uint8_t PWMResolution=8);
         
-        void setRPM(int rpm); 
-        float readRPM();
-
-        bool readDir();
+        void setPosition(int position); 
+        float readPosition();
 
         void setDebug(bool enabled);
 
@@ -45,8 +43,7 @@ class RPMController {
     
     private:
         
-        static void IRAM_ATTR ChanA(void *arg);
-        static void IRAM_ATTR ChanB(void *arg);
+        static void IRAM_ATTR Channel(void *arg);
 
         // Pins connected to respective control on motor driver
         uint8_t kIn1;
@@ -59,14 +56,14 @@ class RPMController {
         // The rated RPM of the motor
         int kMotorMaxRPM;
         
-        // The sample interval for RPM. Too fast will result in noise, and too slow will result in inaccurate response times.
+        // The interval for updating the motor settings. Too fast will result in noise, and too slow will result in inaccurate response times.
         int kSampleTime;
         
         // Effective PPR of quadrature encoders on our motors
         int kEffectivePPR;
 
-        // The acceptable amount of RPM off of the desired RPM. 255 Is the number of steps used in Arduino's AnalogOutput. Decrease if this is too low tolerance. Noisier at higher RPMs.
-        int kRPMTolerance;
+        // The acceptable difference in degrees between ideal position and real position.
+        int kPositionTolerance;
 
         // PID constant values
         int kProportional = 0;
@@ -83,15 +80,15 @@ class RPMController {
 
         // Debug status
         bool kDebug;
-
-        bool withinTolerance = false; 
-        int idealRPM;
-        float realRPM;
         
-        volatile bool prevDir = true;
-        volatile bool realDir = true;
-        volatile bool edgeCount = 0;
+        bool withinTolerance = false;
+        bool prevDir = true;
         
+        int idealPosition;
+        int realPosition;
+        
+        volatile int lastEncoded = 0;
+        volatile int edgePosition = 0; 
         long lastTime = 0;
 
         uint32_t outValue = 0;

@@ -1,6 +1,6 @@
 /*
  * Runs on the ESP32 board
- * Reads velocity and tunes the speed via 
+ * RPM PID implementation test.
  */
 
 #include "src/motor.h"

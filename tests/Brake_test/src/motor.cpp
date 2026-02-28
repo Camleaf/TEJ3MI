@@ -1,9 +1,10 @@
+
 // Implementation of the class outline in motor.h
 #include "motor.h"
 #include "esp_attr.h"
 #include "stdint.h"
 
-RPMController::RPMController(uint8_t In1, uint8_t In2, uint8_t Encoder1, uint8_t Encoder2, int motorMaxRPM, int sampleTime, int effectivePPR, int RPMTolerance, bool debug, uint8_t PWMResolution){
+PositionController::PositionController(uint8_t In1, uint8_t In2, uint8_t Encoder1, uint8_t Encoder2, int motorMaxRPM, int sampleTime, int effectivePPR, int PositionTolerance, bool debug, uint8_t PWMResolution){
     // Define constants
     kIn1 = In1;
     kIn2 = In2;
@@ -13,11 +14,10 @@ RPMController::RPMController(uint8_t In1, uint8_t In2, uint8_t Encoder1, uint8_t
     kSampleTime = sampleTime;
     kEffectivePPR = effectivePPR;
     kDebug = debug;
-    kRPMTolerance = RPMTolerance;
-    // If RPMTolerance is 0, generate it 
-    if (RPMTolerance == 0){
-        // Default at 255 because that is the steps that the motor driver supports
-        kRPMTolerance = kMotorMaxRPM / 255; 
+    kPositionTolerance = ceil(PositionTolerance / ((float)effectivePPR));
+    // If PositionTolerance is 0, generate it 
+    if (PositionTolerance == 0){
+        kPositionTolerance = 1; // about 8 degrees of tolerance 
     }
 
     kPWMResolution = PWMResolution;
@@ -26,12 +26,12 @@ RPMController::RPMController(uint8_t In1, uint8_t In2, uint8_t Encoder1, uint8_t
     pinMode(kIn1, OUTPUT);
     pinMode(kIn2, OUTPUT);
   
-    pinMode(kEncoder1, INPUT);
-    pinMode(kEncoder2, INPUT);
+    pinMode(kEncoder1, INPUT_PULLUP);
+    pinMode(kEncoder2, INPUT_PULLUP);
   
     // Attach ISR interrupts
-    attachInterruptArg(kEncoder1, *RPMController::ChanA, this, CHANGE);
-    attachInterruptArg(kEncoder2, *RPMController::ChanB, this, CHANGE);
+    attachInterruptArg(kEncoder1, *PositionController::Channel, this, CHANGE);
+    attachInterruptArg(kEncoder2, *PositionController::Channel, this, CHANGE);
 
     
     // Starts forwards
@@ -41,81 +41,71 @@ RPMController::RPMController(uint8_t In1, uint8_t In2, uint8_t Encoder1, uint8_t
 
 
 /**
- * Input a negative RPM for one way rotation, positive for another
+ * Input a negative position for one way rotation, positive for another
  */
-void RPMController::setRPM(int rpm){
-    idealRPM = constrain(rpm,-kMotorMaxRPM,kMotorMaxRPM);
-
+void PositionController::setPosition(int position){
+     
 }
 
-float RPMController::readRPM(){
-   return realRPM; 
+float PositionController::readPosition(){
+   return realPosition; 
 }
 
-void RPMController::setPIDValues(int kP, int kI, int kD){
+void PositionController::setPIDValues(int kP, int kI, int kD){
     kProportional = kP;
     kIntegral = kI;
     kDerivative = kD;
 }
 
-void RPMController::setDebug(bool enabled){
+void PositionController::setDebug(bool enabled){
     kDebug = enabled;   
 }
 
 
 
-void IRAM_ATTR RPMController::ChanA(void* arg){
-    RPMController* self = static_cast<RPMController*>(arg);
-    if (digitalRead(self->kEncoder2) == HIGH) { // Will need to determine in testing which way counts as forwards
-      self->realDir = 1;
-    } else {
-    self->realDir = 0;
+void IRAM_ATTR PositionController::Channel(void* arg){
+    PositionController* self = static_cast<PositionController*>(arg);
+    int a = digitalRead(self->kEncoder1);
+    int b = digitalRead(self->kEncoder2);
+    int encoded = (a << 1) | b;
+    int sum = (self->lastEncoded << 2) | encoded;
+
+    if (sum == 0b0001 || sum == 0b0111 || sum == 0b1110 || sum == 0b1000) {
+        self->edgePosition++; // Clockwise
+    } else if (sum == 0b0010 || sum == 0b1011 || sum == 0b1101 || sum == 0b0100) {
+        self->edgePosition--; // Counter-clockwise
     }
-    self->edgeCount += 1;
+
+    self->lastEncoded = encoded;
 }
 
 
 
-void IRAM_ATTR RPMController::ChanB(void *arg){
-    RPMController* self = static_cast<RPMController*>(arg);
-    self->edgeCount += 1;
-}
-
-
-
-void RPMController::tick(){
-    
+void PositionController::tick(){
+     
     if (millis() - lastTime >= kSampleTime) {
         // Logging for Serial Plotter to monitor PID control
         if (kDebug){
-            Serial.print(",realRPM:");
+            Serial.print(",realPosition:");
             // Flip to negative based on real direction
-            Serial.print(realRPM,2);
+            Serial.print(realPosition,2);
 
-            Serial.print(",IdealRPM:");
-            Serial.print(idealRPM);
+            Serial.print(",IdealPosition:");
+            Serial.print(idealPosition);
             Serial.print("\n");
         }
 
-        long currentCount = edgeCount;
-        // 60000 comes from 60 * 1000 (seconds in minute * ms in second)
-        realRPM = (currentCount * 60000.0) / (kEffectivePPR * kSampleTime);
+        realPosition = edgePosition;     
         
-        if (!realDir) realRPM = -realRPM;
-
-        edgeCount = 0;
-        
-
-
 
         // PID operations if outside tolerance
-        if (abs(realRPM-idealRPM)>kRPMTolerance){
+        if (abs(realPosition-idealPosition)>kPositionTolerance){
             withinTolerance = false;
             // Handle PID tuning
             long delta = millis()-lastTime;
-            float error = realRPM-idealRPM;
+            float error = realPosition-idealPosition;
             integral += error * delta;
-            float derivative = (error-prevError) / delta; 
+            float derivative = (error-prevError) / ((float)delta); 
             prevError = error;
 
             float tuned = error*kProportional + derivative * kDerivative + integral * kIntegral;
@@ -125,8 +115,7 @@ void RPMController::tick(){
                     -kMotorMaxRPM,kMotorMaxRPM,-kFineResolution,kFineResolution);
         
             outValue = constrain(outValue,-kFineResolution,kFineResolution);
-                        
-                        
+                         
 
             if (outValue >= 0){
                 if (!prevDir){
@@ -147,8 +136,8 @@ void RPMController::tick(){
                 ledcWrite(kIn2, -outValue);
                 prevDir = false;
             }
-        } else if (!withinTolerance && idealRPM == 0) {
-            // Turn off motor if within the tolerance of 0 rpm.
+        } else if (!withinTolerance) {
+            // Turn off the motor if within tolerance of position
             withinTolerance = true;
             ledcDetach(kIn2);
             ledcDetach(kIn1);
