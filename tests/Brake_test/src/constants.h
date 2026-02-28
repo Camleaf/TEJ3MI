@@ -9,14 +9,11 @@ const int kIn2 = 0;
 const int kEncoder1 = 0;
 const int kEncoder2 = 0;
 
-// The rated RPM of the motor
-const int kMotorMaxRPM = 0;
-
 // The sample interval for Updating position. Too fast will result in noise, and too slow will result in slow response times.
-const unsigned long kSampleTime = 50;
+const unsigned long kSampleTime = 20;
 
-// The acceptable amount of degrees off of the desired position.
-const float kPositionTolerance = 360.0/kEffectivePPR;
+// The acceptable amount of counts off of the desired position.
+const int kPositionTolerance = 1; // bump to 2 if this is too noisy
 
 // PID tuned values
 const int kProportional = 0;

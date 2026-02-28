@@ -1,0 +1,157 @@
+// Implementation of the class outline in motor.h
+#include "motor.h"
+#include "esp_attr.h"
+#include "stdint.h"
+
+RPMController::RPMController(uint8_t In1, uint8_t In2, uint8_t Encoder1, uint8_t Encoder2, int motorMaxRPM, int sampleTime, int effectivePPR, int RPMTolerance, bool debug, uint8_t PWMResolution){
+    // Define constants
+    kIn1 = In1;
+    kIn2 = In2;
+    kEncoder1 = Encoder1;
+    kEncoder2 = Encoder2;
+    kMotorMaxRPM = motorMaxRPM;
+    kSampleTime = sampleTime;
+    kEffectivePPR = effectivePPR;
+    kDebug = debug;
+    kRPMTolerance = RPMTolerance;
+    // If RPMTolerance is 0, generate it 
+    if (RPMTolerance == 0){
+        // Default at 255 because that is the steps that the motor driver supports
+        kRPMTolerance = kMotorMaxRPM / 255; 
+    }
+
+    kPWMResolution = PWMResolution;
+    kFineResolution = (1UL << kPWMResolution) - 1;
+
+    pinMode(kIn1, OUTPUT);
+    pinMode(kIn2, OUTPUT);
+  
+    pinMode(kEncoder1, INPUT);
+    pinMode(kEncoder2, INPUT);
+  
+    // Attach ISR interrupts
+    attachInterruptArg(kEncoder1, *RPMController::ChanA, this, CHANGE);
+    attachInterruptArg(kEncoder2, *RPMController::ChanB, this, CHANGE);
+
+    
+
+    if (idealDir){
+        ledcAttach(kIn1,5000,kPWMResolution);
+        ledcWrite(kIn1,outValue);
+    } else {
+        ledcAttach(kIn2,5000,kPWMResolution);
+        ledcWrite(kIn2,outValue);
+    }
+}
+
+
+
+void RPMController::setRPM(int rpm){
+     idealRPM = rpm;
+}
+
+float RPMController::readRPM(){
+   return realRPM; 
+}
+
+void RPMController::setDir(bool dir){
+    if (dir == idealDir) return;
+    idealDir = dir;
+
+    if (idealDir){
+        ledcDetach(kIn2);
+        delay(1);
+        ledcAttach(kIn1,5000,kPWMResolution);
+        ledcWrite(kIn1, 0);
+    } else {
+        ledcDetach(kIn1);
+        delay(1);
+        ledcAttach(kIn2,5000,kPWMResolution);
+        ledcWrite(kIn2, 0);
+    }
+}
+
+
+void RPMController::setPIDValues(int kP, int kI, int kD){
+    kProportional = kP;
+    kIntegral = kI;
+    kDerivative = kD;
+}
+
+void RPMController::setDebug(bool enabled){
+    kDebug = enabled;   
+}
+
+
+
+void IRAM_ATTR RPMController::ChanA(void* arg){
+    RPMController* self = static_cast<RPMController*>(arg);
+    // Read the pin state inside the ISR to determine if it was a RISE or FALL
+    if (digitalRead(self->kEncoder2) == HIGH) { // Will need to determine in testing which way counts as forwards
+      self->realDir = 1;
+    } else {
+    self->realDir = 0;
+    }
+    self->edgeCount += 1;
+}
+
+
+
+void IRAM_ATTR RPMController::ChanB(void *arg){
+    RPMController* self = static_cast<RPMController*>(arg);
+    self->edgeCount += 1;
+}
+
+
+
+void RPMController::tick(){
+    
+    if (millis() - lastTime >= kSampleTime) {
+        // Logging for Serial Plotter to monitor PID control
+        if (kDebug){
+            Serial.print(",realRPM:");
+            // Flip to negative based on real direction
+            if (realDir) Serial.print(realRPM,2);
+            else Serial.print(-realRPM,2);
+
+            Serial.print(",IdealRPM:");
+            if (idealDir) Serial.print(idealRPM);
+            else Serial.print(-idealRPM);
+            Serial.print("\n");
+        }
+
+        long currentCount = edgeCount;
+        // 60000 comes from 60 * 1000 (seconds in minute * ms in second)
+        realRPM = (currentCount * 60000.0) / (kEffectivePPR * kSampleTime);
+        edgeCount = 0;
+        
+
+
+
+        // PID tuning if outside tolerance
+        if (abs(realRPM-idealRPM)>kRPMTolerance){
+          // Handle PID tuning
+          long delta = millis()-lastTime;
+          float error = realRPM-idealRPM;
+          integral += error * delta;
+          float derivative = (error-prevError) / delta; 
+          prevError = error;
+
+          float tuned = error*kProportional + derivative * kDerivative + integral * kIntegral;
+          // Handle proportional error;
+          outValue = map(
+                    (int) tuned,
+                    0,kMotorMaxRPM,0,kFineResolution);
+        
+          outValue = constrain(outValue,0,kFineResolution);
+        
+          if (idealDir){
+            ledcWrite(kIn1, outValue);
+          } else {
+            ledcWrite(kIn2, outValue);
+          }
+        }
+
+        lastTime = millis();  
+    } 
+}
