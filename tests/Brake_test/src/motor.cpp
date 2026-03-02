@@ -109,7 +109,6 @@ void PositionController::tick(){
             prevError = error;
 
             float tuned = error*kProportional + derivative * kDerivative + integral * kIntegral;
-            // Handle proportional error;
             outValue = map(
                     (int) tuned,
                     -kMotorMaxRPM,kMotorMaxRPM,-kFineResolution,kFineResolution);

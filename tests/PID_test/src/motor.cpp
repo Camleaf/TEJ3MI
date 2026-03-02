@@ -119,8 +119,7 @@ void RPMController::tick(){
             prevError = error;
 
             float tuned = error*kProportional + derivative * kDerivative + integral * kIntegral;
-            // Handle proportional error;
-            outValue = map(
+            outValue += map( // May need to be just = sign. will see which is more stable 
                     (int) tuned,
                     -kMotorMaxRPM,kMotorMaxRPM,-kFineResolution,kFineResolution);
         
