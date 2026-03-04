@@ -1,7 +1,9 @@
 
 // Implementation of the class outline in motor.h
+#include "Arduino.h"
 #include "motor.h"
 #include "esp_attr.h"
+#include "driver/ledc.h"
 #include "stdint.h"
 
 PositionController::PositionController(uint8_t In1, uint8_t In2, uint8_t Encoder1, uint8_t Encoder2, int motorMaxRPM, int sampleTime, int effectivePPR, int PositionTolerance, bool debug, uint8_t PWMResolution){
