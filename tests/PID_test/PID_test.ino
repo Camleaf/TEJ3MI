@@ -7,15 +7,15 @@
 
 // Update for your use with accurate pins
 // Update with pins connecting to m1 and m2 on motor driver
-#define kIn1 0
-#define kIn2 0
+#define kIn1 19
+#define kIn2 21
 
 // Update with pins connecting to the encoder on motor
-#define kEncoder1 0
-#define kEncoder2 0
+#define kEncoder1 25
+#define kEncoder2 26
 
 // Update with rated (but preferably self-tested) maximum RPM of motor
-#define kMotorMaxRPM 0 
+#define kMotorMaxRPM 400 
 /*
  * Modify these values while tuning.
  * kP is the first one you increment, to get the motor moving to a specific RPM
@@ -36,13 +36,14 @@ RPMController motor = RPMController(kIn1, kIn2, kEncoder1, kEncoder2, kMotorMaxR
 
 
 void setup(){
-  Serial.begin(9600);
+  Serial.begin(115200);
   motor.setPIDValues(kP,kI,kD);
 
   // With setDebug, will output plotted values into the arduino Serial Plotter. Use that to help with tuning
   motor.setDebug(true);
 
   motor.setRPM(0);
+  Serial.println("Setup complete");
   delay(2000); // Gives A second before jumping into the mainloop
 };
 
@@ -65,7 +66,6 @@ void loop(){
   
   if (millis()-lastTime > 4000){
       
-
       switch (mode){
         case 0:
             motor.setRPM(kMotorMaxRPM);

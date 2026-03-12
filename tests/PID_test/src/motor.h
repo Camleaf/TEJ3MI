@@ -90,7 +90,7 @@ class RPMController {
         
         volatile bool prevDir = true;
         volatile bool realDir = true;
-        volatile bool edgeCount = 0;
+        volatile long edgeCount = 0;
         
         long lastTime = 0;
 

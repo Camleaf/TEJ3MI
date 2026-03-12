@@ -32,8 +32,8 @@ RPMController::RPMController(uint8_t In1, uint8_t In2, uint8_t Encoder1, uint8_t
     pinMode(kEncoder2, INPUT_PULLUP);
   
     // Attach ISR interrupts
-    attachInterruptArg(kEncoder1, *RPMController::ChanA, this, CHANGE);
-    attachInterruptArg(kEncoder2, *RPMController::ChanB, this, CHANGE);
+    attachInterruptArg(digitalPinToInterrupt(kEncoder1), RPMController::ChanA, this, CHANGE);
+    attachInterruptArg(digitalPinToInterrupt(kEncoder2), RPMController::ChanB, this, CHANGE);
 
     
     // Starts forwards
@@ -86,17 +86,17 @@ void IRAM_ATTR RPMController::ChanB(void *arg){
 
 
 void RPMController::tick(){
-    
     if (millis() - lastTime >= kSampleTime) {
+        static uint8_t count = 0;
         // Logging for Serial Plotter to monitor PID control
-        if (kDebug){
+        if (kDebug && count %10==0){
             Serial.print(",realRPM:");
             // Flip to negative based on real direction
             Serial.print(realRPM,2);
 
             Serial.print(",IdealRPM:");
             Serial.print(idealRPM);
-            Serial.print("\n");
+            Serial.printf(",Edge:%d\n",edgeCount);
         }
 
         long currentCount = edgeCount;
@@ -107,7 +107,6 @@ void RPMController::tick(){
 
         edgeCount = 0;
         
-
 
 
         // PID operations if outside tolerance
@@ -157,7 +156,8 @@ void RPMController::tick(){
             ledcAttach(kIn1,5000,kPWMResolution);
             prevDir = true;
         }
-
+        count++;
         lastTime = millis();  
     } 
+    
 }
