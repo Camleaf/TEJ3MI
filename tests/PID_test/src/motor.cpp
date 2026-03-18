@@ -5,7 +5,9 @@
 #include "driver/ledc.h"
 #include "stdint.h"
 
-
+//////////////////////
+// Define ISR Routines
+//////////////////////
 
 void IRAM_ATTR ChanA(void* arg){
     RPMController* self = static_cast<RPMController*>(arg);
@@ -17,12 +19,14 @@ void IRAM_ATTR ChanA(void* arg){
     self->edgeCount += 1;
 }
 
-
-
 void IRAM_ATTR ChanB(void *arg){
     RPMController* self = static_cast<RPMController*>(arg);
     self->edgeCount += 1;
 }
+
+///////////////////
+// Initialize Class
+///////////////////
 
 
 
