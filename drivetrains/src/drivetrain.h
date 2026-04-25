@@ -8,10 +8,9 @@ using namespace std;
 
 class Arcade {
     public:
-        Arcade(uint8_t kbr1, uint8_t kbr2, uint8_t kbl1, uint8_t kbl2, uint8_t kfr1, uint8_t kfr2, uint8_t kfl1, uint8_t kfl2);
+        Arcade(uint8_t kbr1, uint8_t kbr2, uint8_t kbl1, uint8_t kbl2, uint8_t kfr1, uint8_t kfr2, uint8_t kfl1, uint8_t kfl2, int deadzone=40);
         void setMaxSpeed(uint8_t maxSpeed); // 0-255
         void setTurnPower(uint8_t turnPower); // 0-255
-        
 
         /* JoyY is for moving forward and back, JoyX is for rotation
          */ 
@@ -30,15 +29,15 @@ class Arcade {
         uint8_t kfr2 = 0;
         uint8_t kfl1 = 0;
         uint8_t kfl2 = 0;
+        int deadzone = 40;
 };
 
 
 class Mecanum {
     public:
-        Mecanum(uint8_t kbr1, uint8_t kbr2, uint8_t kbl1, uint8_t kbl2, uint8_t kfr1, uint8_t kfr2, uint8_t kfl1, uint8_t kfl2);
+        Mecanum(uint8_t kbr1, uint8_t kbr2, uint8_t kbl1, uint8_t kbl2, uint8_t kfr1, uint8_t kfr2, uint8_t kfl1, uint8_t kfl2, int deadzone=40);
         void setMaxSpeed(uint8_t maxSpeed); // 0-255
         void setTurnPower(uint8_t turnPower); // 0-255
-        
         /* joyX1 and JoyY are for moving forward, backward, right, and left, joyX2 is for rotation
          */ 
         void updateMotor(int joyX1, int joyX2, int joyY); // Must be in range (-512,512)
@@ -57,6 +56,7 @@ class Mecanum {
         uint8_t kfr2 = 0;
         uint8_t kfl1 = 0;
         uint8_t kfl2 = 0;
+        int deadzone = 40;
 };
 
 

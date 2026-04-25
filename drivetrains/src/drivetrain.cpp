@@ -6,22 +6,67 @@
 #include <array>
 #include <cstdint>
 #include <string>
+
 using namespace std;
 
 
+// Channel defines
 
-void setMotor(uint8_t in1, uint8_t in2, int val){
+#define kchanbr1 0
+#define kchanbr2 1
+
+#define kchanbl1 2
+#define kchanbl2 3
+
+#define kchanfr1 4
+#define kchanfr2 5
+
+#define kchanfl1 6
+#define kchanfl2 7
+
+
+void setMotor(uint8_t chan1, uint8_t chan2, int val){
     if (val >= 0) {
-        analogWrite(in1, val);
-        analogWrite(in2, 0);
+        ledcWrite(chan1,val);
+        ledcWrite(chan2,0);
     } else {
-        analogWrite(in2, -val);
-        analogWrite(in1, 0);
+        ledcWrite(chan2, -val);
+        ledcWrite(chan1,0);
     }
 }
 
+void setupLedc(uint8_t kbr1, uint8_t kbr2, uint8_t kbl1, uint8_t kbl2, uint8_t kfr1, uint8_t kfr2, uint8_t kfl1, uint8_t kfl2){
+    ledcSetup(kchanbr1,5000,8);
+    ledcAttachPin(kbr1,kchanbr1);
+    
+    ledcSetup(kchanbr1,5000,8);
+    ledcAttachPin(kbr2,kchanbr2);
 
-Arcade::Arcade(uint8_t kbr1, uint8_t kbr2, uint8_t kbl1, uint8_t kbl2, uint8_t kfr1, uint8_t kfr2, uint8_t kfl1, uint8_t kfl2){
+    ledcSetup(kchanbl1,5000,8);
+    ledcAttachPin(kbl1,kchanbl1);
+
+    ledcSetup(kchanbl2,5000,8);
+    ledcAttachPin(kbl2,kchanbl2);
+
+    ledcSetup(kchanfr1,5000,8);
+    ledcAttachPin(kfr1,kchanfr1);
+
+    ledcSetup(kchanfr2,5000,8);
+    ledcAttachPin(kfr2,kchanfr2);
+
+    ledcSetup(kchanfl1,5000,8);
+    ledcAttachPin(kfl1,kchanfl1);
+
+    ledcSetup(kchanfl2,5000,8);
+    ledcAttachPin(kfl2,kchanfl2);
+}
+
+void closeLedc(){
+    
+}
+
+
+Arcade::Arcade(uint8_t kbr1, uint8_t kbr2, uint8_t kbl1, uint8_t kbl2, uint8_t kfr1, uint8_t kfr2, uint8_t kfl1, uint8_t kfl2, int deadzone){
     
     this->maxSpeed = 255;
     this->turnPower = 255;
@@ -34,8 +79,11 @@ Arcade::Arcade(uint8_t kbr1, uint8_t kbr2, uint8_t kbl1, uint8_t kbl2, uint8_t k
     this->kfr2 = kfr2;
     this->kfl1 = kfl1;
     this->kfl2 = kfl2;
-}
+    this->deadzone = deadzone;
 
+    setupLedc(kbr1,kbr2,kbl1,kbl2,kfr1,kfr2,kfl1,kfl2);
+    
+}
 
 void Arcade::setTurnPower(uint8_t turnPower){
     this->turnPower = turnPower;
@@ -62,8 +110,8 @@ void Arcade::updateMotor(int joyX, int joyY){
     int rightSide;
     int leftSide;
 
-    if (drive >= 0){
-        if (turn >= 0){ // q1
+    if (drive >= deadzone){
+        if (turn >= deadzone){ // q1
             leftSide = maximum;
             rightSide = difference;
         } else { 
@@ -71,7 +119,7 @@ void Arcade::updateMotor(int joyX, int joyY){
             rightSide = maximum;
         }
     } else {
-        if (turn >= 0){
+        if (turn >= deadzone){
             leftSide = total;
             rightSide = -maximum;
         } else { 
@@ -80,15 +128,15 @@ void Arcade::updateMotor(int joyX, int joyY){
         }
     }
     
-    setMotor(kbr1,kbr2,rightSide);
-    setMotor(kfr1,kfr2,rightSide);
-    setMotor(kbl1,kbl2,leftSide);
-    setMotor(kfl1,kfl2,leftSide);
+    setMotor(kchanbr1,kchanbr2,rightSide);
+    setMotor(kchanfr1,kchanfr2,rightSide);
+    setMotor(kchanbl1,kchanbl2,leftSide);
+    setMotor(kchanfl1,kchanfl2,leftSide);
 
 }
 
 
-Mecanum::Mecanum(uint8_t kbr1, uint8_t kbr2, uint8_t kbl1, uint8_t kbl2, uint8_t kfr1, uint8_t kfr2, uint8_t kfl1, uint8_t kfl2){
+Mecanum::Mecanum(uint8_t kbr1, uint8_t kbr2, uint8_t kbl1, uint8_t kbl2, uint8_t kfr1, uint8_t kfr2, uint8_t kfl1, uint8_t kfl2, int deadzone){
     
     this->maxSpeed = 255;
     this->turnPower = 255;
@@ -101,7 +149,11 @@ Mecanum::Mecanum(uint8_t kbr1, uint8_t kbr2, uint8_t kbl1, uint8_t kbl2, uint8_t
     this->kfr2 = kfr2;
     this->kfl1 = kfl1;
     this->kfl2 = kfl2;
+    this->deadzone = deadzone;
+    
+    setupLedc(kbr1,kbr2,kbl1,kbl2,kfr1,kfr2,kfl1,kfl2);
 }
+
 
 
 void Mecanum::setTurnPower(uint8_t turnPower){
@@ -125,14 +177,19 @@ void Mecanum::updateMotor(int joyX, int joyX2, int joyY){
     int y_drive = constrain(joyY,-maxSpeed,maxSpeed); // standard drive
     int turn = constrain(joyX2,-turnPower,turnPower);
     
+    if (abs(x_drive) < deadzone) x_drive = 0;
+    if (abs(y_drive) < deadzone) y_drive = 0;
+    if (abs(turn) < deadzone) turn = 0;
+    
+
     // Back right motor, reversed
-    setMotor(kbr2,kbr1,y_drive + x_drive - turn);
+    setMotor(kchanbr2,kchanbr1,y_drive + x_drive - turn);
     // Front right motor, reversed
-    setMotor(kfr2,kfr1,y_drive - x_drive - turn);
+    setMotor(kchanfr2,kchanfr1,y_drive - x_drive - turn);
     // Back left motor
-    setMotor(kbl1,kbl2,y_drive - x_drive + turn);
+    setMotor(kchanbl1,kchanbl2,y_drive - x_drive + turn);
     // Front left motor
-    setMotor(kfl1,kfl2,y_drive + x_drive + turn);
+    setMotor(kchanfl1,kchanfl2,y_drive + x_drive + turn);
 }
 
 
