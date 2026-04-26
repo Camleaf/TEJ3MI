@@ -118,7 +118,7 @@ void Arcade::updateMotor(int joyX, int joyY){
             leftSide = total;
             rightSide = maximum;
         }
-    } else {
+    } else if (drive <= -deadzone) {
         if (turn >= deadzone){
             leftSide = total;
             rightSide = -maximum;
@@ -126,6 +126,9 @@ void Arcade::updateMotor(int joyX, int joyY){
             leftSide = -maximum;
             rightSide = difference;
         }
+    } else {
+        leftSide = 0;
+        rightSide = 0;
     }
     
     setMotor(kchanbr1,kchanbr2,rightSide);
