@@ -41,10 +41,10 @@ class Mecanum {
         /* joyX1 and JoyY are for moving forward, backward, right, and left, joyX2 is for rotation
          */ 
         void updateMotor(int joyX1, int joyX2, int joyY); // Must be in range (-512,512)
-
-
-    private:
-        // settings
+        void invertMotor(int motor, bool inverted); //0 backright
+                                                    //1 frontright
+    private:                                        //2 backleft
+        // settings                                  3 frontleft
         uint8_t maxSpeed = 255;
         uint8_t turnPower = 255;
         // motor pins
@@ -57,6 +57,7 @@ class Mecanum {
         uint8_t kfl1 = 0;
         uint8_t kfl2 = 0;
         int deadzone = 40;
+        array<int,4> invertDir = {1,1,1,1};
 };
 
 

@@ -152,6 +152,7 @@ Mecanum::Mecanum(uint8_t kbr1, uint8_t kbr2, uint8_t kbl1, uint8_t kbl2, uint8_t
     this->kfl1 = kfl1;
     this->kfl2 = kfl2;
     this->deadzone = deadzone;
+    this->invertDir = {1,1,1,1};
     
     setupMCPWM(kbr1,kbr2,kbl1,kbl2,kfr1,kfr2,kfl1,kfl2);
 }
@@ -183,12 +184,23 @@ void Mecanum::updateMotor(int joyX, int joyX2, int joyY){
     if (abs(y_drive) < deadzone) y_drive = 0;
     if (abs(turn) < deadzone) turn = 0;
     
-    setMotor(kunitbr,MCPWM_TIMER_1,-(y_drive+x_drive-turn)); //backright, reversed
-    setMotor(kunitfr,MCPWM_TIMER_1,-(y_drive-x_drive-turn)); //frontright, reversed
-    setMotor(kunitbl,MCPWM_TIMER_0,y_drive-x_drive+turn); //backleft
-    setMotor(kunitfl,MCPWM_TIMER_0,y_drive+x_drive+turn); //frontleft
+    setMotor(kunitbr,MCPWM_TIMER_1,(y_drive+x_drive-turn)*invertDir[0]); //backright
+    setMotor(kunitfr,MCPWM_TIMER_1,(y_drive-x_drive-turn)*invertDir[1]); //frontright
+    setMotor(kunitbl,MCPWM_TIMER_0,(y_drive-x_drive+turn)*invertDir[2]); //backleft
+    setMotor(kunitfl,MCPWM_TIMER_0,(y_drive+x_drive+turn)*invertDir[3]); //frontleft
     
 }
 
-
+void Mecanum::invertMotor(int motor, bool inverted){
+    if (motor < 0 || motor >= 4){
+        Serial.println("Tried to invert motor greater than possible");
+        return;
+    }
+    
+    if (inverted){
+        invertDir[motor] = -1;
+        return;
+    } 
+    invertDir[motor] = 1;
+}
 

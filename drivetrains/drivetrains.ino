@@ -10,17 +10,17 @@
 // use gpios 4-18, 21, 38, 39, 40, 41, 42, 47,48 for pwm
 //// drivetrain
 // Back right
-#define kbr1 0
-#define kbr2 0
+#define kbr1 4
+#define kbr2 5
 // Back left
-#define kbl1 0
-#define kbl2 0
+#define kbl1 6
+#define kbl2 7
 // Front right
-#define kfr1 0
-#define kfr2 0
+#define kfr1 8
+#define kfr2 9
 // Front left
-#define kfl1 0
-#define kfl2 0
+#define kfl1 10
+#define kfl2 11
 
 // Misc vars
 #define maxSpeed 128
@@ -40,7 +40,7 @@ const int baseHeight = 10; // mm
 
 
 Mecanum drivetrain(kbr1,kbr2,kbl1,kbl2,kfr1,kfr2,kfl1,kfl2);
-Arm arm(kbase1,kmid1,kclrot1,kclaw1,baseJointLength,upperJointLength,clawLength,baseHeight);
+//Arm arm(kbase1,kmid1,kclrot1,kclaw1,baseJointLength,upperJointLength,clawLength,baseHeight);
 
 
 
@@ -98,11 +98,14 @@ void setup(){
     
     drivetrain.setMaxSpeed(maxSpeed);
     drivetrain.setTurnPower(turnPower);
-
+    drivetrain.invertMotor(0,true); // invert backright
+    drivetrain.invertMotor(1,true); // invert frontright
+    /*
     arm.setBaseJointRange(0,135);
     arm.setClawOCpoint(0,180);
     arm.setUpperJointRange(0,180);
-}
+    */
+  }
 
 
 
