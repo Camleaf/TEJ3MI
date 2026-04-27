@@ -5,6 +5,7 @@
 
 #include "src/drivetrain.h"
 #include "src/arm.h"
+#include "src/shooter.h"
 #include <Bluepad32.h>
 
 // use gpios 4-18, 21, 38, 39, 40, 41, 42, 47,48 for pwm
