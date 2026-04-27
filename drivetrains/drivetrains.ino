@@ -7,6 +7,7 @@
 #include "src/arm.h"
 #include <Bluepad32.h>
 
+// use gpios 4-18, 21, 38, 39, 40, 41, 42, 47,48 for pwm
 //// drivetrain
 // Back right
 #define kbr1 0
@@ -34,6 +35,9 @@ const int baseJointLength = 0; // mm
 const int upperJointLength = 0; // mm
 const int clawLength = 0; // mm
 const int baseHeight = 10; // mm 
+
+
+
 
 Mecanum drivetrain(kbr1,kbr2,kbl1,kbl2,kfr1,kfr2,kfl1,kfl2);
 Arm arm(kbase1,kmid1,kclrot1,kclaw1,baseJointLength,upperJointLength,clawLength,baseHeight);
