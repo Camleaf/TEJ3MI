@@ -49,7 +49,7 @@ void Arm::setBaseJointRange(int min, int max){
     this->baseJointRange={min,max};
 }
 
-void Arm::setMidJointRange(int min, int max){
+void Arm::setUpperJointRange(int min, int max){
     this->midJointRange={min,max};
 }
 

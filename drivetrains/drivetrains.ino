@@ -7,7 +7,7 @@
 #include "src/arm.h"
 #include <Bluepad32.h>
 
-
+//// drivetrain
 // Back right
 #define kbr1 0
 #define kbr2 0
@@ -25,9 +25,18 @@
 #define maxSpeed 128
 #define turnPower 128
 
+//// Arm
+#define kbase1 0
+#define kmid1 0
+#define kclrot1 0
+#define kclaw1 0
+const int baseJointLength = 0; // mm
+const int upperJointLength = 0; // mm
+const int clawLength = 0; // mm
+const int baseHeight = 10; // mm 
 
 Mecanum drivetrain(kbr1,kbr2,kbl1,kbl2,kfr1,kfr2,kfl1,kfl2);
-
+Arm arm(kbase1,kmid1,kclrot1,kclaw1,baseJointLength,upperJointLength,clawLength,baseHeight);
 
 
 
@@ -63,6 +72,7 @@ void processControllers(){
                     cptr->axisRX(),
                     cptr->axisY()
                 ); 
+                
             }
         }
 
@@ -70,22 +80,24 @@ void processControllers(){
 }
 
 
-void SetupBP32(){
-    BP32.setup(
-            onConnectedController,
-            onDisconnectedController
-        );
-    BP32.forgetBluetoothKeys();
-}
-
 
 
 void setup(){
     Serial.begin(115200);
 
-    SetupBP32();
+    BP32.setup(
+            onConnectedController,
+            onDisconnectedController
+        );
+    BP32.forgetBluetoothKeys();
+
+    
     drivetrain.setMaxSpeed(maxSpeed);
     drivetrain.setTurnPower(turnPower);
+
+    arm.setBaseJointRange(0,135);
+    arm.setClawOCpoint(0,180);
+    arm.setUpperJointRange(0,180);
 }
 
 

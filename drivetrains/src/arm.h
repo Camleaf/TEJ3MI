@@ -15,7 +15,7 @@ class Arm {
         );
         
         void setBaseJointRange(int min, int max);
-        void setMidJointRange(int min, int max);
+        void setUpperJointRange(int min, int max);
         void setClawOCpoint(int low, int high); // Degrees of closed and open points for claw servo
 
         void setClawGrip(bool closed);
